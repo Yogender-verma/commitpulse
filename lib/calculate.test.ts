@@ -48,10 +48,14 @@ describe('calculateStreak', () => {
     ]);
 
     const result = calculateStreak(calendar);
-
     expect(result.currentStreak).toBe(0);
     expect(result.longestStreak).toBe(0);
     expect(result.totalContributions).toBe(0);
+  });
+  it('verifies weekend only streaks', () => {
+    const c = buildCalendar([1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1]);
+    const s = calculateStreak(c);
+    expect(s.longestStreak).toBe(2);
   });
 
   it('handles a massive single-day commit spike without affecting streak calculations', () => {
@@ -168,6 +172,31 @@ describe('calculateStreak', () => {
     expect(result.longestStreak).toBe(7);
     expect(result.currentStreak).toBe(6);
     expect(result.totalContributions).toBe(13);
+  });
+
+  it('counts weekday-only commits from Monday through Friday without spanning weekend gaps', () => {
+    // 2024-01-01 is a Monday. Commits happen only on weekdays across two work weeks.
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0, // Mon-Fri active, Sat-Sun inactive
+      1,
+      1,
+      1,
+      1,
+      1, // Mon-Fri active again, ending on Friday
+    ]);
+
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-12T12:00:00Z'));
+
+    expect(result.currentStreak).toBe(5);
+    expect(result.longestStreak).toBe(5);
+    expect(result.totalContributions).toBe(10);
+    expect(result.todayDate).toBe('2024-01-12');
   });
 
   it('keeps the streak alive via the grace period when only yesterday has contributions', () => {
@@ -383,6 +412,243 @@ describe('calculateStreak', () => {
     );
     expect(resultLeapGap.currentStreak).toBe(1);
     expect(resultLeapGap.longestStreak).toBe(1);
+  });
+
+  it('correctly calculates current and longest streaks when commits are made exclusively on Saturdays and Sundays', () => {
+    // 2024-01-01 is a Monday.
+    // Days in a week: Mon, Tue, Wed, Thu, Fri, Sat, Sun
+    // Index:          0,   1,   2,   3,   4,   5,   6
+    // Commits only on Sat (index 5) and Sun (index 6).
+    // Week 1: 0, 0, 0, 0, 0, 1, 1 (Sat Jan 6, Sun Jan 7)
+    // Week 2: 0, 0, 0, 0, 0, 1, 1 (Sat Jan 13, Sun Jan 14)
+    // Week 3: 0, 0, 0, 0, 0, 1, 1 (Sat Jan 20, Sun Jan 21)
+    const calendar = buildCalendar([
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1, // Week 1 (Jan 1 to Jan 7)
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1, // Week 2 (Jan 8 to Jan 14)
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1, // Week 3 (Jan 15 to Jan 21)
+    ]);
+
+    // 1. Evaluate on Sunday, Jan 21, 2024 (which is the last day with commits)
+    // The current streak should be 2 (Sat & Sun) because weekdays are empty.
+    // The longest streak should be 2.
+    const resultSunday = calculateStreak(calendar, 'UTC', new Date('2024-01-21T12:00:00Z'));
+    expect(resultSunday.currentStreak).toBe(2);
+    expect(resultSunday.longestStreak).toBe(2);
+
+    // 2. Evaluate on Monday, Jan 22, 2024 (weekdays have no commits, index 21 has 0 commits)
+    // Let's construct a calendar including Monday Jan 22 so "today" is explicitly present in the data.
+    const calendarWithMonday = buildCalendar([
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1, // Week 1 (Jan 1 to Jan 7)
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1, // Week 2 (Jan 8 to Jan 14)
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1, // Week 3 (Jan 15 to Jan 21)
+      0, // Monday, Jan 22 (0 commits)
+    ]);
+
+    // Monday (today is 0, yesterday Sunday was 1) - grace period of 1 should keep the streak alive.
+    // So current streak should still be 2.
+    const resultMonday = calculateStreak(
+      calendarWithMonday,
+      'UTC',
+      new Date('2024-01-22T12:00:00Z')
+    );
+    expect(resultMonday.currentStreak).toBe(2);
+    expect(resultMonday.longestStreak).toBe(2);
+
+    // 3. Evaluate on Tuesday, Jan 23, 2024 (index 22 has 0 commits)
+    const calendarWithTuesday = buildCalendar([
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1, // Week 1 (Jan 1 to Jan 7)
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1, // Week 2 (Jan 8 to Jan 14)
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1, // Week 3 (Jan 15 to Jan 21)
+      0,
+      0, // Monday Jan 22, Tuesday Jan 23 (0 commits)
+    ]);
+
+    // Tuesday (today is 0, yesterday Monday is 0) - grace period of 1 cannot keep it alive.
+    // So current streak resets to 0.
+    const resultTuesday = calculateStreak(
+      calendarWithTuesday,
+      'UTC',
+      new Date('2024-01-23T12:00:00Z')
+    );
+    expect(resultTuesday.currentStreak).toBe(0);
+    expect(resultTuesday.longestStreak).toBe(2);
+  });
+
+  it('verify streak formulas for different starting days of the week timeline (Variation 2)', () => {
+    // Week 1: 0, 0, 1, 1, 1, 1, 1 (Starts on Wednesday, 5 days)
+    // Week 2: 1, 1, 1, 1, 1, 1, 1 (7 days)
+    // Week 3: 1, 1, 1              // Ends on Wednesday (3 days)
+    // Total continuous streak = 15 days, ending on the last day.
+    const calendar = buildCalendar([
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 1 (Starts Wed)
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 2
+      1,
+      1,
+      1, // Week 3 (Ends Wed)
+    ]);
+    const result = calculateStreak(calendar);
+    expect(result.currentStreak).toBe(15);
+    expect(result.longestStreak).toBe(15);
+  });
+
+  it('verify streak formulas for multiple weeks gaps timeline (Variation 3)', () => {
+    // Streak 1: 5 days
+    // Gap 1: 14 days (2 weeks of zeros)
+    // Streak 2: 10 days (longest)
+    // Gap 2: 21 days (3 weeks of zeros)
+    // Streak 3: 3 days (current) ending on the last day
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 1 (5 days)
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap 1 (14 days)
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 2 (10 days)
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap 2 (21 days)
+      1,
+      1,
+      1, // Streak 3 (3 days - ending on last day)
+    ]);
+    const result = calculateStreak(calendar);
+    expect(result.longestStreak).toBe(10);
+    expect(result.currentStreak).toBe(3);
+  });
+
+  it('verify streak formulas for single day contribution timeline (Variation 3)', () => {
+    // Simulating 1 day of commits, preceded and followed by empty weeks.
+    // 7 empty days (1 week), 1 day of commits (1 contribution), 7 empty days (1 week)
+    const calendar = buildCalendar([
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 1: Empty week
+      1, // 1 day of commits
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 2: Empty week
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(1);
+    expect(result.totalContributions).toBe(1);
   });
 });
 
@@ -876,5 +1142,41 @@ describe('calculateWrappedStats', () => {
 
     // Assert the ratio is exactly 100%
     expect(result.weekendRatio).toBe(100);
+  });
+
+  it('correctly calculates streak when utc midnight maps to different local dates', () => {
+    // Calendar: contributions on Jan 14 and Jan 15 (consecutive days)
+    const calendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-01-14' },
+            { contributionCount: 1, date: '2024-01-15' },
+          ],
+        },
+      ],
+    };
+
+    // UTC: 2024-01-15T04:59:00Z maps to:
+    // - 2024-01-15 in UTC (after midnight)
+    // - 2024-01-14T23:59:00 in UTC-5 (before midnight, same local day as yesterday)
+    // - 2024-01-15T09:59:00 in UTC+5 (well into the new day)
+    const nowUTC = new Date('2024-01-15T04:59:00Z');
+
+    // Streak in UTC: today=Jan15, yesterday=Jan14, both have contributions → streak=2
+    const resultUTC = calculateStreak(calendar, 'UTC', nowUTC);
+    expect(resultUTC.currentStreak).toBe(2);
+    expect(resultUTC.todayDate).toBe('2024-01-15');
+
+    // Streak in UTC-5: today=Jan14, only Jan14 is in scope → streak=1
+    const resultUTCMinus5 = calculateStreak(calendar, 'Etc/GMT+5', nowUTC);
+    expect(resultUTCMinus5.currentStreak).toBe(1);
+    expect(resultUTCMinus5.todayDate).toBe('2024-01-14');
+
+    // Streak in UTC+5: today=Jan15, yesterday=Jan14, both have contributions → streak=2
+    const resultUTCPlus5 = calculateStreak(calendar, 'Etc/GMT-5', nowUTC);
+    expect(resultUTCPlus5.currentStreak).toBe(2);
+    expect(resultUTCPlus5.todayDate).toBe('2024-01-15');
   });
 });
