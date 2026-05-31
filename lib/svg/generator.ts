@@ -174,7 +174,9 @@ function generateCustomGradients(params: BadgeParams, bgHex: string): string {
   // Create a deterministic gradient ID based on the color stops and direction
   // This ensures consistent output and avoids random/duplicate IDs
   const gradientSignature = `${stops.join('-')}-${params.gradient_dir || 'vertical'}`;
-  const gradientId = `custom-grad-${deterministicRandom(gradientSignature).toString().slice(2, 10)}`;
+  const gradientId = `custom-grad-${deterministicRandom(gradientSignature)
+    .toString()
+    .slice(2, 10)}`;
 
   let gradients = '';
 
@@ -259,7 +261,9 @@ function renderDefs(sf: number, params: BadgeParams): string {
 
   const filterGlow =
     params.glow !== false
-      ? `<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>`
+      ? `<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(
+          5
+        )}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>`
       : '';
 
   return `<defs>
@@ -402,7 +406,9 @@ function renderTowers(
     if (!isGhost && t.intensityLevel > 0 && params.gradient === true) {
       // Use custom gradient ID if available, otherwise use default gradient ID
       const customGradId = (params as any).__customGradientId;
-      const gradId = customGradId ? `${customGradId}-level-${t.intensityLevel}` : `tower-grad-level-${t.intensityLevel}`;
+      const gradId = customGradId
+        ? `${customGradId}-level-${t.intensityLevel}`
+        : `tower-grad-level-${t.intensityLevel}`;
 
       leftFillAttr = `fill="url(#${gradId})"`;
       rightFillAttr = `fill="url(#${gradId})"`;
