@@ -241,6 +241,7 @@ type FetchOptions = {
   bypassCache?: boolean;
   from?: string;
   to?: string;
+  rangeLabel?: string;
   signal?: AbortSignal;
 };
 
@@ -249,9 +250,11 @@ export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
 const contributionsCache = new DistributedCache<ExtendedContributionData>(1000);
 const profileCache = new DistributedCache<GitHubUserProfile>(1000);
 const reposCache = new DistributedCache<GitHubRepo[]>(500);
+const contributedReposCache = new DistributedCache<Record<string, unknown>[]>(500);
 const pendingContributions = new Map<string, Promise<ExtendedContributionData>>();
 const pendingProfiles = new Map<string, Promise<GitHubUserProfile>>();
 const pendingRepos = new Map<string, Promise<GitHubRepo[]>>();
+const pendingContributedRepos = new Map<string, Promise<Record<string, unknown>[]>>();
 
 interface GitHubUserProfile {
   login: string;
@@ -268,18 +271,18 @@ interface GitHubUserProfile {
 }
 
 export function cacheKey(
-  kind: 'contributions' | 'profile' | 'repos',
+  kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
   username: string,
   year?: string
 ): string;
 export function cacheKey(
-  kind: 'contributions' | 'profile' | 'repos',
+  kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
   username: string,
   from?: string,
   to?: string
 ): string;
 export function cacheKey(
-  kind: 'contributions' | 'profile' | 'repos',
+  kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
   username: string,
   yearOrFrom?: string,
   to?: string
@@ -296,9 +299,11 @@ export function clearGitHubApiCacheForTests(): void {
   contributionsCache.clear();
   profileCache.clear();
   reposCache.clear();
+  contributedReposCache.clear();
   pendingContributions.clear();
   pendingProfiles.clear();
   pendingRepos.clear();
+  pendingContributedRepos.clear();
 }
 
 function dedupeRequest<T>(
@@ -890,12 +895,16 @@ type Language = {
   name: string;
 };
 
-export function buildInsights(streakStats: StreakStats, languages: Language[]) {
+export function buildInsights(
+  streakStats: StreakStats,
+  languages: Language[],
+  periodLabel = 'this year'
+) {
   const insights = [
     {
       id: '1',
       icon: 'Flame',
-      text: `You have a total of ${streakStats.totalContributions} contributions this year.`,
+      text: `You have a total of ${streakStats.totalContributions} contributions during ${periodLabel}.`,
     },
     {
       id: '2',
@@ -935,38 +944,54 @@ export async function fetchContributedRepos(
   username: string,
   options: FetchOptions = {}
 ): Promise<Record<string, unknown>[]> {
-  const query = `
-    query($login: String!) {
-      user(login: $login) {
-        repositoriesContributedTo(first: 100, contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY], orderBy: {field: UPDATED_AT, direction: DESC}) {
-          nodes {
-            name
-            nameWithOwner
-            owner { login }
-            stargazerCount
-            forkCount
-            primaryLanguage { name }
-            updatedAt
+  const key = cacheKey('repos:contributed', username);
+  if (!options.bypassCache) {
+    const cached = await contributedReposCache.get(key);
+    if (cached) return cached;
+  }
+
+  const load = async () => {
+    const query = `
+      query($login: String!) {
+        user(login: $login) {
+          repositoriesContributedTo(first: 100, contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY], orderBy: {field: UPDATED_AT, direction: DESC}) {
+            nodes {
+              name
+              nameWithOwner
+              owner { login }
+              stargazerCount
+              forkCount
+              primaryLanguage { name }
+              updatedAt
+            }
           }
         }
       }
+    `;
+
+    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        query,
+        variables: { login: username },
+      }),
+      cache: 'no-store',
+      signal: options.signal,
+    });
+
+    if (!res.ok) return [];
+    const data = await res.json();
+    const result = data?.data?.user?.repositoriesContributedTo?.nodes || [];
+
+    if (!options.bypassCache) {
+      await contributedReposCache.set(key, result, GITHUB_CACHE_TTL_MS);
     }
-  `;
+    return result;
+  };
 
-  const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify({
-      query,
-      variables: { login: username },
-    }),
-    cache: 'no-store',
-    signal: options.signal,
-  });
-
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data?.data?.user?.repositoriesContributedTo?.nodes || [];
+  if (options.bypassCache) return load();
+  return dedupeRequest(pendingContributedRepos, key, load);
 }
 
 export interface DeveloperScoreInput {
