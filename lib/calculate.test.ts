@@ -501,6 +501,70 @@ describe('calculateStreak', () => {
     expect(resultLeapGap.longestStreak).toBe(1);
   });
 
+  it('handles leap years vs non-leap years Feb 28 to Mar 1 timeline and asserts correct current/longest streaks', () => {
+    const buildCustomCalendar = (
+      daysData: { date: string; count: number }[]
+    ): ContributionCalendar => {
+      const weeks = [];
+      for (let i = 0; i < daysData.length; i += 7) {
+        const slice = daysData.slice(i, i + 7);
+        weeks.push({
+          contributionDays: slice.map((day) => ({
+            contributionCount: day.count,
+            date: day.date,
+          })),
+        });
+      }
+      return {
+        totalContributions: daysData.reduce((sum, d) => sum + d.count, 0),
+        weeks,
+      };
+    };
+
+    // 1. Non-Leap Year (2021): Feb 28 to Mar 1
+    // Calendar doesn't have Feb 29.
+    const nonLeapCalendar = buildCustomCalendar([
+      { date: '2021-02-28', count: 1 },
+      { date: '2021-03-01', count: 1 },
+    ]);
+
+    const resultNonLeap = calculateStreak(nonLeapCalendar, 'UTC', new Date('2021-03-01T12:00:00Z'));
+    expect(resultNonLeap.currentStreak).toBe(2);
+    expect(resultNonLeap.longestStreak).toBe(2);
+
+    // 2. Leap Year (2020) with missed leap day (Feb 29 has 0 commits)
+    const leapCalendarWithGap = buildCustomCalendar([
+      { date: '2020-02-28', count: 1 },
+      { date: '2020-02-29', count: 0 },
+      { date: '2020-03-01', count: 1 },
+    ]);
+
+    const resultLeapGap = calculateStreak(
+      leapCalendarWithGap,
+      'UTC',
+      new Date('2020-03-01T12:00:00Z')
+    );
+    // Since Feb 29 has 0 commits, the streak of consecutive active days is broken.
+    // However, grace period = 1 keeps current streak alive but only for the continuous active days ending today (Mar 1).
+    expect(resultLeapGap.currentStreak).toBe(1);
+    expect(resultLeapGap.longestStreak).toBe(1);
+
+    // 3. Leap Year (2020) with active leap day (Feb 29 has 1 commit)
+    const leapCalendarContinuous = buildCustomCalendar([
+      { date: '2020-02-28', count: 1 },
+      { date: '2020-02-29', count: 1 },
+      { date: '2020-03-01', count: 1 },
+    ]);
+
+    const resultLeapContinuous = calculateStreak(
+      leapCalendarContinuous,
+      'UTC',
+      new Date('2020-03-01T12:00:00Z')
+    );
+    expect(resultLeapContinuous.currentStreak).toBe(3);
+    expect(resultLeapContinuous.longestStreak).toBe(3);
+  });
+
   it('correctly calculates current and longest streaks when commits are made exclusively on Saturdays and Sundays', () => {
     // 2024-01-01 is a Monday.
     // Days in a week: Mon, Tue, Wed, Thu, Fri, Sat, Sun
