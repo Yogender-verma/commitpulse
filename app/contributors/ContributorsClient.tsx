@@ -163,7 +163,7 @@ export default function ContributorsClient({
       {/* ── Custom Cursor ── */}
       <div
         ref={cursorRef}
-        className="fixed top-0 left-0 w-8 h-8 rounded-full bg-black dark:bg-white mix-blend-difference pointer-events-none z-[100] -ml-4 -mt-4 hidden md:block"
+        className="fixed top-0 left-0 w-8 h-8 rounded-full bg-white mix-blend-difference pointer-events-none z-[100] -ml-4 -mt-4 hidden md:block"
         style={{ transition: 'width 0.2s, height 0.2s' }}
       />
 
