@@ -109,6 +109,13 @@ describe('CompareClient', () => {
     );
   });
 
+  it('renders username inputs', () => {
+    render(<CompareClient />);
+
+    expect(screen.getByPlaceholderText(/github username #1/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/github username #2/i)).toBeInTheDocument();
+  });
+
   it('renders comparison page', () => {
     render(<CompareClient />);
 
