@@ -1120,6 +1120,55 @@ describe('GET /api/streak', () => {
       const body = await response.json();
       expect(body.details.fieldErrors.tz[0]).toContain('Invalid timezone');
     });
+
+    it('returns 400 (not 500) when Intl.DateTimeFormat throws RangeError at runtime', async () => {
+      // Test that a RangeError from Intl.DateTimeFormat is caught and returned as 400.
+      // We save/restore the original to avoid cross-test pollution.
+      const OriginalDateTimeFormat = Intl.DateTimeFormat;
+      let callCount = 0;
+
+      // Must use a regular function (not arrow) so it can act as a constructor.
+      function MockDateTimeFormat(
+        this: Intl.DateTimeFormat,
+        ...args: ConstructorParameters<typeof Intl.DateTimeFormat>
+      ): Intl.DateTimeFormat {
+        callCount++;
+        if (callCount === 1) {
+          // First call (Zod validation) — delegate to the real implementation.
+          return Reflect.construct(
+            OriginalDateTimeFormat,
+            args,
+            OriginalDateTimeFormat
+          ) as Intl.DateTimeFormat;
+        }
+        // Subsequent calls (route handler) — simulate an unsupported timezone.
+        throw new RangeError(`Invalid time zone specified: 'edge-case-tz'`);
+      }
+
+      // Copy static members so the shape matches Intl.DateTimeFormat exactly.
+      MockDateTimeFormat.prototype = OriginalDateTimeFormat.prototype;
+      MockDateTimeFormat.supportedLocalesOf = OriginalDateTimeFormat.supportedLocalesOf;
+
+      Object.defineProperty(Intl, 'DateTimeFormat', {
+        value: MockDateTimeFormat as unknown as typeof Intl.DateTimeFormat,
+        configurable: true,
+        writable: true,
+      });
+
+      try {
+        const response = await GET(makeRequest({ user: 'octocat', tz: 'edge-case-tz' }));
+        // Should return 400, not 500
+        expect(response.status).toBe(400);
+        const body = await response.text();
+        expect(body).toContain('Invalid timezone');
+      } finally {
+        Object.defineProperty(Intl, 'DateTimeFormat', {
+          value: OriginalDateTimeFormat,
+          configurable: true,
+          writable: true,
+        });
+      }
+    });
   });
 
   describe('hide_background parameter', () => {
