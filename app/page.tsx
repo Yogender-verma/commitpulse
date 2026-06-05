@@ -302,6 +302,11 @@ export default function LandingPage() {
   const [instantUsername, setInstantUsername] = useState('');
   const [copied, setCopied] = useState(false);
 
+  const resetCopiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollToGuideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+
+
   const [badgeResult, setBadgeResult] = useState<{
     username: string;
     status: 'loaded' | 'error';
@@ -403,8 +408,28 @@ export default function LandingPage() {
     fetchDetails();
   }, [debouncedUsername, mounted]);
 
+  const clearCopyTimers = () => {
+    if (resetCopiedTimeoutRef.current) {
+      clearTimeout(resetCopiedTimeoutRef.current);
+      resetCopiedTimeoutRef.current = null;
+    }
+    if (scrollToGuideTimeoutRef.current) {
+      clearTimeout(scrollToGuideTimeoutRef.current);
+      scrollToGuideTimeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearCopyTimers();
+    };
+  }, []);
+
   const copyToClipboard = async () => {
     if (trimmedUsername.length === 0) return;
+
+    // Prevent overlapping timers from previous clicks
+    clearCopyTimers();
 
     try {
       await navigator.clipboard.writeText(markdown);
@@ -416,11 +441,16 @@ export default function LandingPage() {
     trackUser(trimmedUsername);
     addSearch(trimmedUsername);
     setCopied(true);
-    setTimeout(() => {
+
+    scrollToGuideTimeoutRef.current = setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    setTimeout(() => setCopied(false), 50000);
+
+    resetCopiedTimeoutRef.current = setTimeout(() => {
+      setCopied(false);
+    }, 50000);
   };
+
 
   const selectDemoUser = (name: string) => {
     setUsername(name);
