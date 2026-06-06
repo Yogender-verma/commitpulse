@@ -191,6 +191,7 @@ URL Parameter > Theme Default > System Fallback
 | `shading`         | `boolean` | No         | `false`                        | Apply intensity-based opacity shading to tower faces so lower intensity levels appear slightly dimmer                                                                     |
 | `opacity`         | `number`  | No         | `1.0`                          | Global opacity scalar for all tower fill-opacity values (0.1–1.0). `opacity=0.5` = semi-transparent ghost look. `opacity=0.8` = faded, great on light backgrounds.        |
 | `gradient`        | `boolean` | No         | `false`                        | Opt-in to show volumetric gradients on the monolith floor                                                                                                                 |
+| `label`           | `boolean` | No         | `true`                         | Controls whether the username title is displayed. Set to `false` to hide the username and render a more compact badge.                                                    |
 
 ### Grace Period Examples
 
@@ -282,6 +283,10 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Hide GitHub username/title -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_title=true)
+
+<!-- Hide username label and render a more compact badge -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&label=false)
 
 <!-- Hide bottom statistics row -->
 

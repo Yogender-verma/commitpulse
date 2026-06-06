@@ -131,6 +131,11 @@ const baseStreakParamsSchema = z.object({
       }
     }),
 
+  label: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false'),
+
   theme: z
     .string()
     .optional()

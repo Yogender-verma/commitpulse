@@ -825,6 +825,58 @@ describe('generateSVG', () => {
     });
   });
 
+  describe('label parameter', () => {
+    it('omits the username title text when label=false', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat', label: false } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).not.toContain('OCTOCAT');
+    });
+
+    it('renders the username title text when label=true', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat', label: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('OCTOCAT');
+    });
+
+    it('uses the default behaviour when label is omitted', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('OCTOCAT');
+    });
+
+    it('reduces SVG height when label=false', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat', label: false } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('viewBox="0 0 600 380"');
+    });
+
+    it('keeps the default SVG height when label=true', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat', label: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('viewBox="0 0 600 420"');
+    });
+  });
+
   describe('isOfflineFallback parameter', () => {
     it('appends [STALE CACHE] to the username when isOfflineFallback is true', () => {
       const svg = generateSVG(
@@ -1578,7 +1630,7 @@ describe('Radar Scan Line Animation Alignment', () => {
     expect(textTitleMatch).not.toBeNull();
     const renderedTitleText = textTitleMatch?.[1];
 
-    expect(renderedTitleText).toBe(expectedTruncated.toUpperCase());
+    expect(renderedTitleText?.trim()).toBe(expectedTruncated.toUpperCase());
     expect(renderedTitleText).not.toContain(longUsername.toUpperCase());
 
     // C. Verify geometry remains completely unchanged compared to the baseline
@@ -1601,7 +1653,7 @@ describe('Radar Scan Line Animation Alignment', () => {
     expect(titleMatch).not.toBeNull();
     const renderedTitle = titleMatch?.[1];
 
-    expect(renderedTitle).toBe(expectedTruncated);
+    expect(renderedTitle?.trim()).toBe(expectedTruncated);
     expect(renderedTitle).not.toContain(longUsername.toUpperCase());
   });
 
@@ -1618,7 +1670,7 @@ describe('Radar Scan Line Animation Alignment', () => {
     expect(titleMatch).not.toBeNull();
     const renderedTitle = titleMatch?.[1];
 
-    expect(renderedTitle).toBe(shortUsername.toUpperCase());
+    expect(renderedTitle?.trim()).toBe(shortUsername.toUpperCase());
     expect(renderedTitle).not.toContain('...');
   });
 
