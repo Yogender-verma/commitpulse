@@ -112,7 +112,7 @@ export function sanitizeGoogleFontUrl(fontName: string | undefined | null): stri
   if (!cleaned) return null;
 
   // Return the encoded font name suitable for Google Fonts API URL (spaces replaced with '+')
-  return encodeURIComponent(cleaned).replace(/%20/g, '+');
+  return cleaned.replace(/\s+/g, '+');
 }
 
 export function getLuminance(hex: string): number {
@@ -166,7 +166,8 @@ export function parseGradientStops(input?: string): string[] {
     .split(',')
     .slice(0, MAX_GRADIENT_STOPS)
     .map((color) => normalizeHexColor(color))
-    .filter((color) => color !== null) as string[];
+    .filter((color) => color !== null)
+    .slice(0, 10) as string[];
 
   return colors;
 }
