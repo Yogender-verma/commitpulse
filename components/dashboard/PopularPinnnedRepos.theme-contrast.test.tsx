@@ -201,7 +201,9 @@ describe('PopularRepos dark/light visual cohesion', () => {
     const title = screen.getByTestId('repo-header-title');
     const repoName = screen.getByText('popular-alpha');
     const description = screen.getByText('Alpha repository with premium themed card styling');
-    const metadata = screen.getAllByText('TypeScript')[0].closest('div')?.parentElement;
+    const languageRow = screen.getAllByText('TypeScript')[0].closest('div');
+    expect(languageRow).not.toBeNull();
+    const metadata = languageRow!.parentElement;
     const dropdown = screen.getByRole('button', { name: /popular/i });
 
     expect(classList(title)).toEqual(expect.arrayContaining(['text-foreground']));
