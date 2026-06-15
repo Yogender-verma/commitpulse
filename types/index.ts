@@ -170,6 +170,7 @@ export interface ExtendedContributionData {
   repoContributions: RepoContribution[];
   totalPRs?: number;
   totalIssues?: number;
+  totalReviews?: number;
   isOfflineFallback?: boolean;
 }
 
@@ -346,6 +347,12 @@ export interface BadgeParams {
   glow?: boolean;
   isOfflineFallback?: boolean;
   badges?: boolean;
+
+  /** Projection rotation angle around the Z-axis in degrees (0-360). */
+  theta?: number;
+
+  /** Projection tilt angle around the X-axis in degrees (0-90). */
+  phi?: number;
 
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;
