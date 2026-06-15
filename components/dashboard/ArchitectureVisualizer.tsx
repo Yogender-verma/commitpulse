@@ -2,10 +2,25 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, GitBranch, Sparkles, Folder, File, ChevronRight, HelpCircle, 
-  Layers, Network, FileText, ChevronDown, ListFilter, AlertTriangle, 
-  RotateCcw, ArrowRight, CornerDownRight, Maximize2, Minimize2
+import {
+  X,
+  GitBranch,
+  Sparkles,
+  Folder,
+  File,
+  ChevronRight,
+  HelpCircle,
+  Layers,
+  Network,
+  FileText,
+  ChevronDown,
+  ListFilter,
+  AlertTriangle,
+  RotateCcw,
+  ArrowRight,
+  CornerDownRight,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -17,7 +32,7 @@ import {
   useNodesState,
   useEdgesState,
   Position,
-  Handle
+  Handle,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -28,7 +43,9 @@ const FolderNodeRenderer = ({ data }: any) => {
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <span className="text-sm shrink-0">📁</span>
       <div className="flex flex-col min-w-0">
-        <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">{data.label}</span>
+        <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+          {data.label}
+        </span>
         <span className="text-[9px] text-gray-500 uppercase tracking-widest">Folder</span>
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
@@ -62,8 +79,12 @@ const FileNodeRenderer = ({ data }: any) => {
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <span className="text-sm shrink-0">{getIcon(data.type)}</span>
       <div className="flex flex-col min-w-0">
-        <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">{data.label}</span>
-        <span className="text-[9px] text-gray-500 dark:text-white/40">{data.linesOfCode} lines</span>
+        <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+          {data.label}
+        </span>
+        <span className="text-[9px] text-gray-500 dark:text-white/40">
+          {data.linesOfCode} lines
+        </span>
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>
@@ -86,15 +107,15 @@ interface TreeNode {
 
 function buildTree(files: any[], folders: string[]): TreeNode {
   const root: TreeNode = { name: 'root', path: '', isFolder: true, children: [] };
-  
-  folders.forEach(f => {
+
+  folders.forEach((f) => {
     const parts = f.split('/');
     let current = root;
     let currentPath = '';
-    
-    parts.forEach(part => {
+
+    parts.forEach((part) => {
       currentPath = currentPath ? `${currentPath}/${part}` : part;
-      let existing = current.children.find(child => child.path === currentPath);
+      let existing = current.children.find((child) => child.path === currentPath);
       if (!existing) {
         existing = { name: part, path: currentPath, isFolder: true, children: [] };
         current.children.push(existing);
@@ -102,31 +123,31 @@ function buildTree(files: any[], folders: string[]): TreeNode {
       current = existing;
     });
   });
-  
-  files.forEach(file => {
+
+  files.forEach((file) => {
     const parts = file.path.split('/');
     let current = root;
     let currentPath = '';
-    
+
     for (let i = 0; i < parts.length - 1; i++) {
       currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
-      let existing = current.children.find(child => child.path === currentPath);
+      let existing = current.children.find((child) => child.path === currentPath);
       if (!existing) {
         existing = { name: parts[i], path: currentPath, isFolder: true, children: [] };
         current.children.push(existing);
       }
       current = existing;
     }
-    
+
     current.children.push({
       name: file.name,
       path: file.path,
       isFolder: false,
       children: [],
-      data: file
+      data: file,
     });
   });
-  
+
   // Sort children: Folders first, then Files alphabetically
   const sortTree = (node: TreeNode) => {
     node.children.sort((a, b) => {
@@ -137,22 +158,30 @@ function buildTree(files: any[], folders: string[]): TreeNode {
     node.children.forEach(sortTree);
   };
   sortTree(root);
-  
+
   return root;
 }
 
 // Collapsible tree node component
-const FolderTreeNode = ({ node, onNodeClick, activeNodePath }: { node: TreeNode; onNodeClick: (data: any) => void; activeNodePath?: string }) => {
+const FolderTreeNode = ({
+  node,
+  onNodeClick,
+  activeNodePath,
+}: {
+  node: TreeNode;
+  onNodeClick: (data: any) => void;
+  activeNodePath?: string;
+}) => {
   const [isOpen, setIsOpen] = useState(true);
-  
+
   if (!node.isFolder) {
     const isActive = activeNodePath === node.path;
     return (
-      <div 
+      <div
         onClick={() => onNodeClick(node.data)}
         className={`flex items-center gap-2 py-1 px-2 rounded cursor-pointer text-xs transition-colors ${
-          isActive 
-            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold' 
+          isActive
+            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold'
             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'
         }`}
       >
@@ -161,18 +190,22 @@ const FolderTreeNode = ({ node, onNodeClick, activeNodePath }: { node: TreeNode;
       </div>
     );
   }
-  
+
   return (
     <div className="pl-2.5">
-      <div 
+      <div
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-1.5 py-1 px-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded cursor-pointer text-xs font-semibold text-gray-800 dark:text-gray-200"
       >
-        {isOpen ? <ChevronDown size={13} className="text-gray-400" /> : <ChevronRight size={13} className="text-gray-400" />}
+        {isOpen ? (
+          <ChevronDown size={13} className="text-gray-400" />
+        ) : (
+          <ChevronRight size={13} className="text-gray-400" />
+        )}
         <Folder size={13} className="text-purple-400 fill-purple-400/10" />
         <span className="truncate">{node.name}</span>
       </div>
-      
+
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
@@ -182,11 +215,11 @@ const FolderTreeNode = ({ node, onNodeClick, activeNodePath }: { node: TreeNode;
             transition={{ duration: 0.15, ease: 'easeInOut' }}
             className="overflow-hidden border-l border-black/5 dark:border-white/5 ml-2 pl-1.5 space-y-0.5"
           >
-            {node.children.map(child => (
-              <FolderTreeNode 
-                key={child.path} 
-                node={child} 
-                onNodeClick={onNodeClick} 
+            {node.children.map((child) => (
+              <FolderTreeNode
+                key={child.path}
+                node={child}
+                onNodeClick={onNodeClick}
                 activeNodePath={activeNodePath}
               />
             ))}
@@ -207,11 +240,13 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Visualizer data
   const [data, setData] = useState<any>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'architecture' | 'tree' | 'dependencies' | 'summary'>('architecture');
+  const [activeTab, setActiveTab] = useState<'architecture' | 'tree' | 'dependencies' | 'summary'>(
+    'architecture'
+  );
   const [fullscreen, setFullscreen] = useState(false);
 
   // React Flow states
@@ -224,7 +259,7 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
     'Parsing imports...',
     'Detecting dependencies...',
     'Building graph...',
-    'Generating explanation...'
+    'Generating explanation...',
   ];
 
   useEffect(() => {
@@ -258,7 +293,7 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
 
     // Simulated step transitions for user loading indicators
     const interval = setInterval(() => {
-      setLoadingStep(prev => {
+      setLoadingStep((prev) => {
         if (prev >= loadingSteps.length - 1) {
           clearInterval(interval);
           return prev;
@@ -271,7 +306,7 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
       const response = await fetch('/api/architecture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repoUrl: repoUrl.trim() })
+        body: JSON.stringify({ repoUrl: repoUrl.trim() }),
       });
 
       if (!response.ok) {
@@ -300,7 +335,7 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
       setSelectedNode({
         name: node.data.label,
         path: node.data.path,
-        isFolder: true
+        isFolder: true,
       });
     }
   }, []);
@@ -333,8 +368,8 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
       layout
       transition={{ type: 'spring', stiffness: 260, damping: 28 }}
       className={`rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] shadow-sm overflow-hidden flex flex-col relative transition-all duration-300 ${
-        fullscreen 
-          ? 'fixed inset-4 z-50 bg-white dark:bg-[#050505] shadow-2xl border-purple-500/20' 
+        fullscreen
+          ? 'fixed inset-4 z-50 bg-white dark:bg-[#050505] shadow-2xl border-purple-500/20'
           : 'w-full min-h-[360px] h-full'
       }`}
       style={{ height: fullscreen ? 'calc(100vh - 32px)' : '100%' }}
@@ -389,7 +424,6 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
       {/* Main Container Body */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <AnimatePresence mode="wait">
-          
           {/* 1. EMPTY STATE */}
           {!data && !isLoading && !error && (
             <motion.div
@@ -406,7 +440,8 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                 Visualize Repository Architecture
               </h4>
               <p className="text-xs text-gray-500 dark:text-white/50 max-w-sm mt-1 mb-6 leading-relaxed">
-                Paste a GitHub repository URL to generate a dependency graph and project structure visualization.
+                Paste a GitHub repository URL to generate a dependency graph and project structure
+                visualization.
               </p>
 
               <form onSubmit={handleGenerate} className="w-full max-w-md flex flex-col gap-3">
@@ -423,7 +458,7 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-black/10 dark:border-white/10 bg-gray-50 dark:bg-black/40 text-xs focus:bg-white dark:focus:bg-black focus:outline-none focus:ring-2 focus:ring-purple-500/40 text-gray-900 dark:text-white transition-all"
                   />
                 </div>
-                
+
                 <button
                   type="submit"
                   className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-semibold shadow-md active:scale-[0.98] transition-all duration-200 cursor-pointer"
@@ -447,7 +482,7 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
               <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-1">
                 {loadingSteps[loadingStep]}
               </h4>
-              
+
               {/* Progress steps list */}
               <div className="w-full max-w-xs mt-6 space-y-2.5 text-xs text-gray-500 dark:text-[#A1A1AA]">
                 {loadingSteps.map((step, idx) => {
@@ -455,16 +490,20 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                   const isCurrent = idx === loadingStep;
                   return (
                     <div key={idx} className="flex items-center gap-2">
-                      <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold ${
-                        isDone 
-                          ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/20' 
-                          : isCurrent 
-                            ? 'bg-purple-500/20 text-purple-500 border border-purple-500/30 animate-pulse' 
-                            : 'bg-gray-100 dark:bg-white/5 text-transparent border border-black/5 dark:border-white/5'
-                      }`}>
+                      <span
+                        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold ${
+                          isDone
+                            ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/20'
+                            : isCurrent
+                              ? 'bg-purple-500/20 text-purple-500 border border-purple-500/30 animate-pulse'
+                              : 'bg-gray-100 dark:bg-white/5 text-transparent border border-black/5 dark:border-white/5'
+                        }`}
+                      >
                         {isDone && '✓'}
                       </span>
-                      <span className={isCurrent ? 'text-gray-900 dark:text-white font-medium' : ''}>
+                      <span
+                        className={isCurrent ? 'text-gray-900 dark:text-white font-medium' : ''}
+                      >
                         {step.replace('...', '')}
                       </span>
                     </div>
@@ -523,8 +562,8 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                   { id: 'architecture', label: 'Architecture', icon: Network },
                   { id: 'tree', label: 'Folder Tree', icon: Folder },
                   { id: 'dependencies', label: 'Dependencies', icon: Layers },
-                  { id: 'summary', label: 'Summary', icon: FileText }
-                ].map(tab => {
+                  { id: 'summary', label: 'Summary', icon: FileText },
+                ].map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
                   return (
@@ -532,8 +571,8 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as any)}
                       className={`relative py-3.5 px-3 flex items-center gap-1.5 text-xs font-semibold transition-all border-b-2 outline-none cursor-pointer ${
-                        isActive 
-                          ? 'border-purple-500 text-purple-600 dark:text-purple-400' 
+                        isActive
+                          ? 'border-purple-500 text-purple-600 dark:text-purple-400'
                           : 'border-transparent text-gray-500 dark:text-[#A1A1AA] hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
@@ -546,7 +585,6 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
 
               {/* Tab views content */}
               <div className="flex-1 flex overflow-hidden relative">
-                
                 {/* TAB 1: ARCHITECTURE NETWORK GRAPH */}
                 {activeTab === 'architecture' && (
                   <div className="flex-1 flex overflow-hidden relative min-h-[400px]">
@@ -563,9 +601,12 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                       colorMode="dark"
                     >
                       <Background color="#555" gap={16} size={1} />
-                      <Controls showInteractive={false} className="dark:bg-[#111] dark:border-white/10 dark:text-white" />
-                      <MiniMap 
-                        nodeColor={(n: any) => n.type === 'folderNode' ? '#c084fc' : '#34d399'} 
+                      <Controls
+                        showInteractive={false}
+                        className="dark:bg-[#111] dark:border-white/10 dark:text-white"
+                      />
+                      <MiniMap
+                        nodeColor={(n: any) => (n.type === 'folderNode' ? '#c084fc' : '#34d399')}
                         maskColor="rgba(0, 0, 0, 0.4)"
                         className="dark:bg-[#111] dark:border-white/10 border-black/10"
                       />
@@ -582,14 +623,15 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                 {activeTab === 'tree' && (
                   <div className="flex-1 overflow-y-auto p-5 custom-scrollbar min-h-[400px]">
                     <div className="max-w-md border border-black/10 dark:border-white/10 rounded-xl p-4 bg-gray-50/50 dark:bg-black/35">
-                      {treeRoot && treeRoot.children.map(child => (
-                        <FolderTreeNode 
-                          key={child.path} 
-                          node={child} 
-                          onNodeClick={handleTreeFileClick} 
-                          activeNodePath={selectedNode?.path}
-                        />
-                      ))}
+                      {treeRoot &&
+                        treeRoot.children.map((child) => (
+                          <FolderTreeNode
+                            key={child.path}
+                            node={child}
+                            onNodeClick={handleTreeFileClick}
+                            activeNodePath={selectedNode?.path}
+                          />
+                        ))}
                     </div>
                   </div>
                 )}
@@ -600,43 +642,55 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                     <h4 className="text-xs uppercase tracking-wider font-semibold text-gray-500 mb-3">
                       Code imports mapping
                     </h4>
-                    
-                    {data.files && data.files.filter((f: any) => f.imports.length > 0).length === 0 ? (
+
+                    {data.files &&
+                    data.files.filter((f: any) => f.imports.length > 0).length === 0 ? (
                       <div className="p-8 text-center text-xs text-gray-500 dark:text-white/40">
                         No internal import dependencies detected in analyzed files.
                       </div>
                     ) : (
-                      data.files && data.files.filter((f: any) => f.imports.length > 0).map((file: any) => (
-                        <div 
-                          key={file.path}
-                          className="p-3.5 rounded-xl border border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-zinc-900/10 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
-                        >
-                          <div className="w-full md:w-1/3 min-w-0">
-                            <span className="text-[9px] text-gray-400 uppercase tracking-widest block mb-0.5">File Node</span>
-                            <span className="font-semibold text-gray-900 dark:text-white truncate block">{file.name}</span>
-                            <span className="text-[10px] text-gray-500 dark:text-[#A1A1AA] block truncate">{file.path}</span>
-                          </div>
+                      data.files &&
+                      data.files
+                        .filter((f: any) => f.imports.length > 0)
+                        .map((file: any) => (
+                          <div
+                            key={file.path}
+                            className="p-3.5 rounded-xl border border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-zinc-900/10 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="w-full md:w-1/3 min-w-0">
+                              <span className="text-[9px] text-gray-400 uppercase tracking-widest block mb-0.5">
+                                File Node
+                              </span>
+                              <span className="font-semibold text-gray-900 dark:text-white truncate block">
+                                {file.name}
+                              </span>
+                              <span className="text-[10px] text-gray-500 dark:text-[#A1A1AA] block truncate">
+                                {file.path}
+                              </span>
+                            </div>
 
-                          <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 font-bold self-center">
-                            <ArrowRight size={14} />
-                          </div>
+                            <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 font-bold self-center">
+                              <ArrowRight size={14} />
+                            </div>
 
-                          <div className="w-full md:w-1/2 min-w-0">
-                            <span className="text-[9px] text-gray-400 uppercase tracking-widest block mb-0.5">Imports ({file.imports.length})</span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {file.imports.map((imp: string) => (
-                                <span 
-                                  key={imp} 
-                                  className="px-2 py-0.5 rounded bg-gray-100 dark:bg-white/5 border border-black/5 dark:border-white/5 font-mono text-[9px] text-gray-600 dark:text-gray-300 truncate max-w-[180px]"
-                                  title={imp}
-                                >
-                                  {imp}
-                                </span>
-                              ))}
+                            <div className="w-full md:w-1/2 min-w-0">
+                              <span className="text-[9px] text-gray-400 uppercase tracking-widest block mb-0.5">
+                                Imports ({file.imports.length})
+                              </span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {file.imports.map((imp: string) => (
+                                  <span
+                                    key={imp}
+                                    className="px-2 py-0.5 rounded bg-gray-100 dark:bg-white/5 border border-black/5 dark:border-white/5 font-mono text-[9px] text-gray-600 dark:text-gray-300 truncate max-w-[180px]"
+                                    title={imp}
+                                  >
+                                    {imp}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))
+                        ))
                     )}
                   </div>
                 )}
@@ -651,7 +705,7 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                           Architectural Assessment
                         </h4>
                       </div>
-                      
+
                       <div className="text-xs text-gray-600 dark:text-[#A1A1AA] leading-relaxed whitespace-pre-line space-y-4">
                         {data.summary}
                       </div>
@@ -696,25 +750,33 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-2 text-center">
                               <div className="bg-gray-50 dark:bg-white/5 p-2 rounded-lg border border-black/5 dark:border-white/5">
-                                <span className="text-[9px] text-gray-500 block uppercase font-medium">File Size</span>
+                                <span className="text-[9px] text-gray-500 block uppercase font-medium">
+                                  File Size
+                                </span>
                                 <span className="text-xs font-bold text-gray-900 dark:text-white block mt-0.5">
                                   {formattedSize(selectedNode.size)}
                                 </span>
                               </div>
                               <div className="bg-gray-50 dark:bg-white/5 p-2 rounded-lg border border-black/5 dark:border-white/5">
-                                <span className="text-[9px] text-gray-500 block uppercase font-medium">Lines of Code</span>
+                                <span className="text-[9px] text-gray-500 block uppercase font-medium">
+                                  Lines of Code
+                                </span>
                                 <span className="text-xs font-bold text-gray-900 dark:text-white block mt-0.5">
                                   {selectedNode.linesOfCode}
                                 </span>
                               </div>
                               <div className="bg-gray-50 dark:bg-white/5 p-2 rounded-lg border border-black/5 dark:border-white/5">
-                                <span className="text-[9px] text-gray-500 block uppercase font-medium">Commits</span>
+                                <span className="text-[9px] text-gray-500 block uppercase font-medium">
+                                  Commits
+                                </span>
                                 <span className="text-xs font-bold text-gray-900 dark:text-white block mt-0.5">
                                   {selectedNode.commits}
                                 </span>
                               </div>
                               <div className="bg-gray-50 dark:bg-white/5 p-2 rounded-lg border border-black/5 dark:border-white/5">
-                                <span className="text-[9px] text-gray-500 block uppercase font-medium">Last Edited</span>
+                                <span className="text-[9px] text-gray-500 block uppercase font-medium">
+                                  Last Edited
+                                </span>
                                 <span className="text-xs font-bold text-gray-900 dark:text-white block mt-0.5">
                                   {selectedNode.lastModified}
                                 </span>
@@ -729,7 +791,10 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                                 </span>
                                 <div className="flex flex-wrap gap-1">
                                   {selectedNode.contributors.map((c: string) => (
-                                    <span key={c} className="px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full text-[9px] font-semibold">
+                                    <span
+                                      key={c}
+                                      className="px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full text-[9px] font-semibold"
+                                    >
                                       {c}
                                     </span>
                                   ))}
@@ -745,7 +810,11 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                                 </span>
                                 <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto custom-scrollbar">
                                   {selectedNode.imports.map((imp: string) => (
-                                    <span key={imp} className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/5 border border-black/5 dark:border-white/5 font-mono text-[9px] rounded text-gray-600 dark:text-gray-300 truncate max-w-full" title={imp}>
+                                    <span
+                                      key={imp}
+                                      className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/5 border border-black/5 dark:border-white/5 font-mono text-[9px] rounded text-gray-600 dark:text-gray-300 truncate max-w-full"
+                                      title={imp}
+                                    >
                                       {imp}
                                     </span>
                                   ))}
@@ -761,7 +830,10 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                                 </span>
                                 <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto custom-scrollbar">
                                   {selectedNode.exports.map((exp: string) => (
-                                    <span key={exp} className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[9px] rounded">
+                                    <span
+                                      key={exp}
+                                      className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[9px] rounded"
+                                    >
                                       {exp}
                                     </span>
                                   ))}
@@ -774,7 +846,9 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                         {/* Folder stats */}
                         {selectedNode.isFolder && (
                           <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/5 text-xs text-gray-500">
-                            📁 Folder group does not contain file-level size, line count or commit telemetry metrics. Double-click or expand in the Folder Tree tab to view child files.
+                            📁 Folder group does not contain file-level size, line count or commit
+                            telemetry metrics. Double-click or expand in the Folder Tree tab to view
+                            child files.
                           </div>
                         )}
                       </div>
@@ -788,10 +862,8 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
               </div>
             </motion.div>
           )}
-
         </AnimatePresence>
       </div>
-
     </motion.div>
   );
 }

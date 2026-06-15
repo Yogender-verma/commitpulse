@@ -697,7 +697,6 @@ export default function DashboardClient({
           </aside>
 
           <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
-
             <section>
               <ActivityLandscape data={initialData.activity} />
             </section>
@@ -1230,34 +1229,35 @@ export default function DashboardClient({
         userData={initialData}
       />
 
-      {typeof window !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {isVisualizerOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsVisualizerOpen(false)}
-                className="absolute inset-0 bg-black/60 backdrop-blur-md"
-                aria-hidden="true"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 16 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 16 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="relative w-full max-w-6xl h-[85vh] overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] shadow-xl flex flex-col"
-              >
-                <div className="flex-1 overflow-hidden h-full">
-                  <ArchitectureVisualizer onClose={() => setIsVisualizerOpen(false)} />
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+      {typeof window !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {isVisualizerOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsVisualizerOpen(false)}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                  aria-hidden="true"
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 16 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  className="relative w-full max-w-6xl h-[85vh] overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] shadow-xl flex flex-col"
+                >
+                  <div className="flex-1 overflow-hidden h-full">
+                    <ArchitectureVisualizer onClose={() => setIsVisualizerOpen(false)} />
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
@@ -8,20 +8,45 @@ import * as ts from 'typescript';
 import pLimit from 'p-limit';
 import { getGitHubTokens } from '@/lib/github';
 
-const execPromise = promisify(exec);
+const execFilePromise = promisify(execFile);
 
 // Supported files for parsing imports/exports
 const PARSABLE_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx']);
 // Supported text files to show in folder tree
 const TEXT_EXTENSIONS = new Set([
-  '.js', '.jsx', '.ts', '.tsx', '.json', '.css', '.html', '.md', 
-  '.py', '.go', '.java', '.cpp', '.h', '.cs', '.sh', '.yml', '.yaml'
+  '.js',
+  '.jsx',
+  '.ts',
+  '.tsx',
+  '.json',
+  '.css',
+  '.html',
+  '.md',
+  '.py',
+  '.go',
+  '.java',
+  '.cpp',
+  '.h',
+  '.cs',
+  '.sh',
+  '.yml',
+  '.yaml',
 ]);
 
 // Directories to ignore during traversal
 const IGNORED_DIRS = new Set([
-  'node_modules', '.git', '.next', 'dist', 'build', 'out', 
-  'coverage', '.vercel', 'bin', 'obj', 'tmp', 'temp'
+  'node_modules',
+  '.git',
+  '.next',
+  'dist',
+  'build',
+  'out',
+  'coverage',
+  '.vercel',
+  'bin',
+  'obj',
+  'tmp',
+  'temp',
 ]);
 
 interface AnalyzedFile {
@@ -43,11 +68,13 @@ interface AnalyzedFile {
 function parseRepoUrl(url: string): { owner: string; repo: string } | null {
   try {
     const cleanUrl = url.trim().replace(/\/$/, '');
-    const match = cleanUrl.match(/^(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)/);
+    const match = cleanUrl.match(
+      /^(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)/
+    );
     if (!match) return null;
     return {
       owner: match[1],
-      repo: match[2].replace(/\.git$/, '')
+      repo: match[2].replace(/\.git$/, ''),
     };
   } catch {
     return null;
@@ -62,12 +89,7 @@ function parseFileImportsAndExports(filePath: string, fileContent: string) {
   const exports: string[] = [];
 
   try {
-    const sourceFile = ts.createSourceFile(
-      filePath,
-      fileContent,
-      ts.ScriptTarget.Latest,
-      true
-    );
+    const sourceFile = ts.createSourceFile(filePath, fileContent, ts.ScriptTarget.Latest, true);
 
     function traverse(node: ts.Node) {
       // 1. Static Import Declarations: import X from 'y'
@@ -76,7 +98,7 @@ function parseFileImportsAndExports(filePath: string, fileContent: string) {
         if (ts.isStringLiteral(moduleSpecifier)) {
           imports.push(moduleSpecifier.text);
         }
-      } 
+      }
       // 2. Import Equals Declarations: import X = require('y')
       else if (ts.isImportEqualsDeclaration(node)) {
         if (ts.isExternalModuleReference(node.moduleReference)) {
@@ -85,7 +107,7 @@ function parseFileImportsAndExports(filePath: string, fileContent: string) {
             imports.push(expression.text);
           }
         }
-      } 
+      }
       // 3. Call Expressions: require('x') or dynamic import('x')
       else if (ts.isCallExpression(node)) {
         if (
@@ -98,7 +120,7 @@ function parseFileImportsAndExports(filePath: string, fileContent: string) {
             imports.push(arg.text);
           }
         }
-      } 
+      }
       // 4. Export Declarations: export { x } from 'y'
       else if (ts.isExportDeclaration(node)) {
         if (node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
@@ -106,21 +128,21 @@ function parseFileImportsAndExports(filePath: string, fileContent: string) {
         }
         if (node.exportClause) {
           if (ts.isNamedExports(node.exportClause)) {
-            node.exportClause.elements.forEach(el => {
+            node.exportClause.elements.forEach((el) => {
               exports.push(el.name.text);
             });
           }
         }
-      } 
+      }
       // 5. Named export modifiers on variables, functions, classes
       else if (
-        ts.isFunctionDeclaration(node) || 
-        ts.isClassDeclaration(node) || 
-        ts.isInterfaceDeclaration(node) || 
-        ts.isTypeAliasDeclaration(node) || 
+        ts.isFunctionDeclaration(node) ||
+        ts.isClassDeclaration(node) ||
+        ts.isInterfaceDeclaration(node) ||
+        ts.isTypeAliasDeclaration(node) ||
         ts.isVariableStatement(node)
       ) {
-        const hasExport = node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword);
+        const hasExport = node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
         if (hasExport) {
           if (ts.isFunctionDeclaration(node) && node.name) {
             exports.push(node.name.text);
@@ -131,7 +153,7 @@ function parseFileImportsAndExports(filePath: string, fileContent: string) {
           } else if (ts.isTypeAliasDeclaration(node) && node.name) {
             exports.push(node.name.text);
           } else if (ts.isVariableStatement(node)) {
-            node.declarationList.declarations.forEach(dec => {
+            node.declarationList.declarations.forEach((dec) => {
               if (ts.isIdentifier(dec.name)) {
                 exports.push(dec.name.text);
               }
@@ -145,12 +167,12 @@ function parseFileImportsAndExports(filePath: string, fileContent: string) {
 
     traverse(sourceFile);
   } catch (err) {
-    console.error(`Error AST parsing file ${filePath}:`, err);
+    console.error('Error AST parsing file:', filePath, err);
   }
 
-  return { 
-    imports: Array.from(new Set(imports)), 
-    exports: Array.from(new Set(exports)) 
+  return {
+    imports: Array.from(new Set(imports)),
+    exports: Array.from(new Set(exports)),
   };
 }
 
@@ -163,7 +185,11 @@ function resolveImportPath(
   allFilesSet: Set<string>
 ): string | null {
   // If third-party, ignore
-  if (!importSpecifier.startsWith('.') && !importSpecifier.startsWith('@/') && !importSpecifier.startsWith('~/')) {
+  if (
+    !importSpecifier.startsWith('.') &&
+    !importSpecifier.startsWith('@/') &&
+    !importSpecifier.startsWith('~/')
+  ) {
     return null;
   }
 
@@ -174,7 +200,10 @@ function resolveImportPath(
     const relativeTarget = importSpecifier.slice(2);
     targetPath = relativeTarget;
     // Check both src folder prefix and root
-    if (!allFilesSet.has(targetPath) && allFilesSet.has(path.join('src', relativeTarget).replace(/\\/g, '/'))) {
+    if (
+      !allFilesSet.has(targetPath) &&
+      allFilesSet.has(path.join('src', relativeTarget).replace(/\\/g, '/'))
+    ) {
       targetPath = path.join('src', relativeTarget).replace(/\\/g, '/');
     }
   } else {
@@ -186,7 +215,17 @@ function resolveImportPath(
   // Normalize path format
   targetPath = targetPath.replace(/^\.\//, '');
 
-  const extensions = ['', '.tsx', '.ts', '.jsx', '.js', '/index.tsx', '/index.ts', '/index.jsx', '/index.js'];
+  const extensions = [
+    '',
+    '.tsx',
+    '.ts',
+    '.jsx',
+    '.js',
+    '/index.tsx',
+    '/index.ts',
+    '/index.jsx',
+    '/index.js',
+  ];
   for (const ext of extensions) {
     const candidate = `${targetPath}${ext}`;
     if (allFilesSet.has(candidate)) {
@@ -212,11 +251,11 @@ export async function POST(req: NextRequest) {
     }
 
     const { owner, repo } = repoDetails;
-    
+
     // Construct authenticated clone URL if GITHUB_TOKEN is available
     const tokens = getGitHubTokens();
     const token = tokens.length > 0 ? tokens[0] : null;
-    const cloneUrl = token 
+    const cloneUrl = token
       ? `https://x-access-token:${token}@github.com/${owner}/${repo}.git`
       : `https://github.com/${owner}/${repo}.git`;
 
@@ -225,16 +264,20 @@ export async function POST(req: NextRequest) {
 
     // Shallow clone the repository
     try {
-      await execPromise(`git clone --depth 1 "${cloneUrl}" "${tempDir}"`);
+      await execFilePromise('git', ['clone', '--depth', '1', cloneUrl, tempDir]);
     } catch (err: any) {
-      console.error(`Cloning failed for ${repoUrl}:`, err);
+      console.error('Cloning failed for repository:', repoUrl, err);
       // Clean up tempDir if it was created
       if (tempDir && fs.existsSync(tempDir)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
       }
-      return NextResponse.json({
-        error: 'Failed to clone repository. Make sure the repository exists and is public (or access token is set).'
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          error:
+            'Failed to clone repository. Make sure the repository exists and is public (or access token is set).',
+        },
+        { status: 404 }
+      );
     }
 
     // Traverse directory structure
@@ -267,11 +310,13 @@ export async function POST(req: NextRequest) {
 
     // Limit files to analyze to prevent resource starvation or serverless timeouts
     const MAX_FILES_TO_ANALYZE = 150;
-    const parsableFiles = filesList.filter(f => PARSABLE_EXTENSIONS.has(path.extname(f).toLowerCase()));
-    
+    const parsableFiles = filesList.filter((f) =>
+      PARSABLE_EXTENSIONS.has(path.extname(f).toLowerCase())
+    );
+
     // Prioritize shallower file structures first, then sort by size
     const prioritizedFiles = parsableFiles
-      .map(file => {
+      .map((file) => {
         const fullPath = path.join(tempDir, file);
         const stats = fs.statSync(fullPath);
         const depth = file.split('/').length;
@@ -279,7 +324,7 @@ export async function POST(req: NextRequest) {
       })
       .sort((a, b) => a.depth - b.depth || b.size - a.size)
       .slice(0, MAX_FILES_TO_ANALYZE)
-      .map(item => item.file);
+      .map((item) => item.file);
 
     const prioritizedFilesSet = new Set(prioritizedFiles);
 
@@ -287,7 +332,7 @@ export async function POST(req: NextRequest) {
     // Run in parallel with concurrency limit
     const limit = pLimit(10);
     const analyzedFiles: AnalyzedFile[] = await Promise.all(
-      prioritizedFiles.map(file =>
+      prioritizedFiles.map((file) =>
         limit(async (): Promise<AnalyzedFile> => {
           const fullPath = path.join(tempDir, file);
           const ext = path.extname(file).toLowerCase();
@@ -304,28 +349,31 @@ export async function POST(req: NextRequest) {
           let contributors: string[] = ['Author'];
 
           try {
-            const commitCountRes = await execPromise(
-              `git rev-list --count HEAD -- "${file}"`,
+            const commitCountRes = await execFilePromise(
+              'git',
+              ['rev-list', '--count', 'HEAD', '--', file],
               { cwd: tempDir }
             );
             commitsCount = parseInt(commitCountRes.stdout.trim(), 10) || 1;
 
-            const lastModRes = await execPromise(
-              `git log -1 --format="%cd" --date=short -- "${file}"`,
+            const lastModRes = await execFilePromise(
+              'git',
+              ['log', '-1', '--format=%cd', '--date=short', '--', file],
               { cwd: tempDir }
             );
             if (lastModRes.stdout.trim()) {
               lastModified = lastModRes.stdout.trim();
             }
 
-            const contributorsRes = await execPromise(
-              `git log --format="%an" -- "${file}"`,
+            const contributorsRes = await execFilePromise(
+              'git',
+              ['log', '--format=%an', '--', file],
               { cwd: tempDir }
             );
             const rawContribs = contributorsRes.stdout
               .split('\n')
-              .map(c => c.trim())
-              .filter(c => c !== '');
+              .map((c) => c.trim())
+              .filter((c) => c !== '');
             if (rawContribs.length > 0) {
               contributors = Array.from(new Set(rawContribs));
             }
@@ -343,7 +391,7 @@ export async function POST(req: NextRequest) {
             lastModified,
             contributors,
             imports,
-            exports
+            exports,
           };
         })
       )
@@ -356,7 +404,7 @@ export async function POST(req: NextRequest) {
     // 1. Create Folder nodes
     // Filter folders to only those that contain prioritized files
     const activeFolders = new Set<string>();
-    prioritizedFiles.forEach(file => {
+    prioritizedFiles.forEach((file) => {
       let parts = file.split('/');
       parts.pop(); // Remove file name
       while (parts.length > 0) {
@@ -365,21 +413,21 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    Array.from(activeFolders).forEach(folder => {
+    Array.from(activeFolders).forEach((folder) => {
       nodes.push({
         id: folder,
         type: 'folderNode',
         data: {
           label: path.basename(folder),
           path: folder,
-          isFolder: true
+          isFolder: true,
         },
-        position: { x: 0, y: 0 } // Positions will be calculated below
+        position: { x: 0, y: 0 }, // Positions will be calculated below
       });
     });
 
     // 2. Create File nodes
-    analyzedFiles.forEach(file => {
+    analyzedFiles.forEach((file) => {
       nodes.push({
         id: file.path,
         type: 'fileNode',
@@ -394,15 +442,15 @@ export async function POST(req: NextRequest) {
           contributors: file.contributors,
           imports: file.imports,
           exports: file.exports,
-          isFolder: false
+          isFolder: false,
         },
-        position: { x: 0, y: 0 }
+        position: { x: 0, y: 0 },
       });
     });
 
     // 3. Create Edges
     // A. Folder containment edges (Dashed style, folder -> nested item)
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const nodeId = node.id;
       const parts = nodeId.split('/');
       if (parts.length > 1) {
@@ -414,15 +462,15 @@ export async function POST(req: NextRequest) {
             source: parentId,
             target: nodeId,
             type: 'default',
-            style: { strokeDasharray: '4 4', stroke: '#6B7280', opacity: 0.4 }
+            style: { strokeDasharray: '4 4', stroke: '#6B7280', opacity: 0.4 },
           });
         }
       }
     });
 
     // B. Dependency import edges (Solid green flowing edges, file -> imported file)
-    analyzedFiles.forEach(file => {
-      file.imports.forEach(imp => {
+    analyzedFiles.forEach((file) => {
+      file.imports.forEach((imp) => {
         const resolved = resolveImportPath(file.path, imp, allFilesSet);
         // Only link if the resolved file is also within our prioritized nodes set
         if (resolved && prioritizedFilesSet.has(resolved)) {
@@ -431,7 +479,7 @@ export async function POST(req: NextRequest) {
             source: file.path,
             target: resolved,
             animated: true,
-            style: { stroke: '#10B981', strokeWidth: 1.5 }
+            style: { stroke: '#10B981', strokeWidth: 1.5 },
           });
         }
       });
@@ -439,13 +487,13 @@ export async function POST(req: NextRequest) {
 
     // 4. Calculate node layout coordinates (Grouped by depth level)
     const nodesByDepth: Record<number, any[]> = {};
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const depth = node.id.split('/').length - 1;
       if (!nodesByDepth[depth]) nodesByDepth[depth] = [];
       nodesByDepth[depth].push(node);
     });
 
-    Object.keys(nodesByDepth).forEach(depthKey => {
+    Object.keys(nodesByDepth).forEach((depthKey) => {
       const depth = parseInt(depthKey, 10);
       const depthNodes = nodesByDepth[depth];
       const count = depthNodes.length;
@@ -455,7 +503,7 @@ export async function POST(req: NextRequest) {
       depthNodes.forEach((node, index) => {
         node.position = {
           x: startX + index * spacingX,
-          y: depth * 150 + 60
+          y: depth * 150 + 60,
         };
       });
     });
@@ -477,7 +525,7 @@ export async function POST(req: NextRequest) {
 
     const dependencies = {
       ...packageJsonData.dependencies,
-      ...packageJsonData.devDependencies
+      ...packageJsonData.devDependencies,
     };
 
     const detectedTech: string[] = [];
@@ -494,10 +542,13 @@ export async function POST(req: NextRequest) {
 
     if (geminiApiKey) {
       try {
-        const fileStructureList = prioritizedFiles.slice(0, 50).map(f => `- ${f}`).join('\n');
+        const fileStructureList = prioritizedFiles
+          .slice(0, 50)
+          .map((f) => `- ${f}`)
+          .join('\n');
         const importsSnippet = analyzedFiles
           .slice(0, 15)
-          .map(f => `${f.path} imports: ${f.imports.join(', ')}`)
+          .map((f) => `${f.path} imports: ${f.imports.join(', ')}`)
           .join('\n');
 
         const prompt = `
@@ -528,8 +579,8 @@ export async function POST(req: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMaxOutputTokens: 500 }
-          })
+            generationConfig: { responseMaxOutputTokens: 500 },
+          }),
         });
 
         if (response.ok) {
@@ -551,9 +602,9 @@ export async function POST(req: NextRequest) {
         'Modular architecture enforces separation of concerns by isolating presentation UI from business utilities and backend connectors.',
         'Component layers are designed to be highly reusable with atomic file splits, minimizing duplicate styling and code patterns.',
         'Directory organization complies with industry standards, placing configuration at the root and source files in localized logical modules.',
-        'Overall maintainability is outstanding, exhibiting low structural coupling and clean import dependency graphs.'
+        'Overall maintainability is outstanding, exhibiting low structural coupling and clean import dependency graphs.',
       ];
-      summary = bulletPoints.map(bp => `• ${bp}`).join('\n\n');
+      summary = bulletPoints.map((bp) => `• ${bp}`).join('\n\n');
     }
 
     return NextResponse.json({
@@ -561,9 +612,8 @@ export async function POST(req: NextRequest) {
       files: analyzedFiles,
       nodes,
       edges,
-      summary
+      summary,
     });
-
   } catch (error: any) {
     console.error('Architecture visualizer route crashed:', error);
     return NextResponse.json(
