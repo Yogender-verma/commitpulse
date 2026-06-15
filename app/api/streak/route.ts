@@ -2,7 +2,6 @@
 
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
-import { Resvg } from '@resvg/resvg-js';
 import { fetchGitHubContributions, getOrgDashboardData, getCircuitTelemetry } from '@/lib/github';
 import {
   calculateStreak,
@@ -568,6 +567,7 @@ export async function GET(request: Request) {
     }
 
     if (format === 'png') {
+      const { Resvg } = await import('@resvg/resvg-js');
       const resvg = new Resvg(svg, {
         background: 'transparent',
         fitTo: { mode: 'original' },
