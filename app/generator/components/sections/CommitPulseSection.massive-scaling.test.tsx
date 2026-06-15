@@ -24,7 +24,7 @@ global.fetch = vi.fn(() =>
       },
     }),
   })
-) as typeof fetch;
+) as unknown as typeof fetch;
 
 describe('CommitPulseSection Massive Data Sets and Extreme High Bounds Scaling', () => {
   const defaultProps = {
