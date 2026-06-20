@@ -98,9 +98,6 @@ describe('DeploymentTracker — type compiler contracts', () => {
   });
 
   it('rejects an extra unknown property not defined on DeploymentData (excess property check)', () => {
-    // Fixed: Declaring the object directly inside the assignment context allows the compiler
-    // to execute direct literal excess property matching accurately on line 100.
-    // @ts-expect-error - "region" is not a key of DeploymentData
     const invalid: DeploymentData = {
       repoName: 'acme/web-app',
       repoUrl: 'https://github.com/acme/web-app',
@@ -109,6 +106,7 @@ describe('DeploymentTracker — type compiler contracts', () => {
       deployedAt: new Date().toISOString(),
       environment: 'production',
       workflowName: 'Vercel Production Deployment',
+      // @ts-expect-error - "region" is not a key of DeploymentData and must trigger a compile error directly here
       region: 'us-east-1',
     };
     expect(invalid).toBeDefined();
