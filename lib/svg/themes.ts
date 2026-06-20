@@ -12,6 +12,7 @@ function makeTheme(bg: string, text: string, accent: string, negative?: string):
 }
 
 export const themes: Record<string, BadgeTheme> = {
+  default: makeTheme('0d1117', 'ffffff', '2da44e', 'f85149'),
   dark: makeTheme('0d1117', 'c9d1d9', '58a6ff', 'f85149'),
   light: makeTheme('ffffff', '24292f', '0969da', 'cf222e'),
   neon: makeTheme('000000', '00ffcc', 'ff00ff', 'ff0055'),
@@ -32,6 +33,7 @@ export const themes: Record<string, BadgeTheme> = {
   nord_light: makeTheme('eceff4', '2e3440', '5e81ac', 'bf616a'),
   obsidian: makeTheme('1a1a2e', 'e2e8f0', 'f59e0b'),
   'cyber-pulse': makeTheme('000000', 'ffffff', '00ffee', 'ff0055'),
+  'retro-terminal': makeTheme('000000', '00ff41', '00ff41', '00aa2b'),
   glacier: makeTheme('e0f2fe', '0369a1', '06b6d4', 'ef4444'),
   lumos: makeTheme('0a0a0a', 'a7f3d0', 'fbbf24', 'ef4444'),
   tokyonight: makeTheme('1a1b26', 'c0caf5', 'f7768e'),
