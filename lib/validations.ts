@@ -321,7 +321,7 @@ const baseStreakParamsSchema = z.object({
       (val) => {
         if (!val) return true;
         const yearNum = parseInt(val, 10);
-        const currentYear = new Date().getFullYear();
+        const currentYear = new Date().getUTCFullYear();
         return /^\d{4}$/.test(val) && yearNum >= 2008 && yearNum <= currentYear;
       },
       {
@@ -672,7 +672,7 @@ export const wrappedParamsSchema = z.object({
       (val) => {
         if (!val) return true;
         const yearNum = parseInt(val, 10);
-        const currentYear = new Date().getFullYear();
+        const currentYear = new Date().getUTCFullYear();
         return /^\d{4}$/.test(val) && yearNum >= 2008 && yearNum <= currentYear;
       },
       {
