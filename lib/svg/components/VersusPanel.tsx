@@ -64,10 +64,10 @@ export const VersusPanel: React.FC<VersusPanelProps> = ({
       <g transform="translate(0, 0)">
         <g
           transform={`translate(0, ${Math.round(20 * sf)})`}
-          dangerouslySetInnerHTML={{ __html: createSafeSvgMarkup(towers1) }}
+          dangerouslySetInnerHTML={createSafeSvgMarkup(towers1)}
         />
-        <g dangerouslySetInnerHTML={{ __html: createSafeSvgMarkup(labels1) }} />
-        <g dangerouslySetInnerHTML={{ __html: createSafeSvgMarkup(stats1Html) }} />
+        <g dangerouslySetInnerHTML={createSafeSvgMarkup(labels1)} />
+        <g dangerouslySetInnerHTML={createSafeSvgMarkup(stats1Html)} />
         <text
           x={s(300)}
           y={s(50)}
@@ -87,10 +87,10 @@ export const VersusPanel: React.FC<VersusPanelProps> = ({
       <g transform={`translate(${singleW}, 0)`}>
         <g
           transform={`translate(0, ${Math.round(20 * sf)})`}
-          dangerouslySetInnerHTML={{ __html: createSafeSvgMarkup(towers2) }}
+          dangerouslySetInnerHTML={createSafeSvgMarkup(towers2)}
         />
-        <g dangerouslySetInnerHTML={{ __html: createSafeSvgMarkup(labels2) }} />
-        <g dangerouslySetInnerHTML={{ __html: createSafeSvgMarkup(stats2Html) }} />
+        <g dangerouslySetInnerHTML={createSafeSvgMarkup(labels2)} />
+        <g dangerouslySetInnerHTML={createSafeSvgMarkup(stats2Html)} />
         <text
           x={s(300)}
           y={s(50)}
