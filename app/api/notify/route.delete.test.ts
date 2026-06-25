@@ -13,15 +13,36 @@ vi.mock('@/models/Notification', () => ({
   },
 }));
 
-vi.mock('@/lib/rate-limit', () => ({
-  notifyRateLimiter: {
-    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
-      success: false,
-      limit: 60,
-      remaining: 0,
-      reset: Date.now() + 60000,
-    });
+vi.mock('@/lib/rate-limit', () => {
+  const mockResult = { success: false, limit: 60, remaining: 0, reset: Date.now() + 60000 };
+  return {
+    notifyRateLimiter: {
+      checkWithResult: vi.fn().mockResolvedValue(mockResult),
+    },
+    getRateLimitHeaders: vi.fn(() => ({
+      'X-RateLimit-Limit': '60',
+      'X-RateLimit-Remaining': '0',
+      'X-RateLimit-Reset': String(Date.now() + 60000),
+      'Retry-After': '60',
+    })),
+  };
+});
 
+function makeRequest(query: string): NextRequest {
+  return new NextRequest(`http://localhost/api/notify?${query}`, { method: 'DELETE' });
+}
+
+beforeEach(() => {
+  process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+  process.env.NODE_ENV = 'test';
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe('DELETE /api/notify', () => {
+  it('returns 429 when rate limited', async () => {
     const res = await DELETE(makeRequest('user=testuser'));
 
     expect(res.status).toBe(429);

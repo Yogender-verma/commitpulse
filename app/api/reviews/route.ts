@@ -8,7 +8,6 @@ import { DistributedCache } from '@/lib/cache';
 import { getRateLimitHeaders, notifyRateLimiter } from '@/lib/rate-limit';
 import { validateCSRF } from '@/lib/security/csrf';
 
-
 // Per-IP cooldown: one submission per 10 minutes to prevent spam
 const reviewWriteCache = new DistributedCache<number>(5000, 60000);
 const REVIEW_WRITE_COOLDOWN_MS = 10 * 60 * 1000;

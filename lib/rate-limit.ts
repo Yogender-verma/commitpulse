@@ -378,19 +378,19 @@ export async function rateLimit(
     const windowSeconds = Math.floor(windowMs / 1000);
     const result = await evalRateLimitScript(url, token, `ratelimit:${ip}`, limit, windowSeconds);
 
-      if (result !== null) {
-        const [allowed, count, ttl] = result;
-        const resetMs = ttl > 0 ? now + ttl * 1000 : now + windowMs;
-        return {
-          success: allowed === 1,
-          limit,
-          remaining: Math.max(0, limit - count),
-          reset: resetMs,
-        };
-      }
-
-      console.error('Rate limit KV error, falling back to memory');
+    if (result !== null) {
+      const [allowed, count, ttl] = result;
+      const resetMs = ttl > 0 ? now + ttl * 1000 : now + windowMs;
+      return {
+        success: allowed === 1,
+        limit,
+        remaining: Math.max(0, limit - count),
+        reset: resetMs,
+      };
     }
+
+    console.error('Rate limit KV error, falling back to memory');
+  }
 
   const count = await trackers.incr(cacheKey, windowMs);
   const resetAt = now + windowMs;
